@@ -1,0 +1,644 @@
+#######################################################################
+############### Galactic Potential Particles Integrator ###############
+################### Created by Eric Andersson #########################
+#######################################################################
+
+Discription:
+Program which integrates trajectories of test particles in moving 
+potential fields. The program will run a set of encounters where 
+every encounter is stored in a separate run file (RUN000, ...).
+  
+Author: Eric Andersson (eric)
+
+#######################################################################
+
+How to run the code:
+
+The program should have directories as follows:
+./main.cpp
+./Class/Galaxy.cpp
+./Class/Galaxy.hpp
+./Class/Satellite.cpp
+./Class/Satellite.hpp
+./Class/Particle.cpp
+./Class/Particle.hpp
+
+Then compile code with a C++ complier. The program works well with the
+G++ complier. Using this the program can be complied with the following
+command:
+
+g++ Class/Galaxy.cpp Class/Satellite.cpp Class/Particle.cpp main.cpp -o run.exe
+
+This will produce an executable file run.exe which can be used to run
+program.
+
+The program will require a setup of initial conditions for a set of
+encounters. Each encounter is have its own directory according to
+./RUN{0:03d}/ in with the program will grab the initial conditions and
+store data. These directories should be placed in the same directory as 
+the main.cpp file. An example with a compiled program is:
+
+/directory/
+	/Class
+		Galaxy.cpp
+		...
+	main.cpp
+	run.exe
+	/RUN000
+		initial_conditions.txt
+	/RUN001
+		initial_conditions.txt
+	...
+
+The file containing the initial conditions should be called 
+initial_conditions.txt. The initial conditions should be listed 
+accordingly
+
+x_sat	y_sat	z_sat	vx_sat	vy_sat	vz_sat
+x0		y0		z0		vx0		vy0		vz0
+x1		y1		z1		vx1		vy1		vz1
+...
+
+where the coordinates denoted with sat are the satellite galaxy initial
+coordinates in phase space, while all following phase space coodinates
+are for particles denoted 0,1,2, ...,n. Note that it is not required to
+specify n to the program. It will initiate the number of particles that
+it can find coordinates for. The units that the program expects are:
+
+x		y		z		vx		vy		vz
+[kpc]	[kpc] 	[kpc]	[km/s]	[km/s]	[km/s]
+
+There are a few coordinates that need to be set before compiling the 
+main.cpp file. Firstly the simulation parameters need to be set
+
+    bool adaptive_timestep = false; // If true -> use adaptive timestep 
+    double dt = 0.1;                // Time-step in Myr.
+    double dt_rec = 5;              // Data recorded every dt_rec Myr.
+    double time_tot = 14000;        // Total simulated time in Myr.
+    double nruns = 5;               // Number of encounters.
+
+In this above example the program will run 5 encounters (this require 
+5 RUN{0:03d} files, e.g. RUN000, RUN001, ..., RUN004). The program do 
+not use a adaptive timestep and will therefore integrate the 
+trajectories with a constant timestep dt = 0.1 Myr's. Each encounter
+will run for 14 Gyr's and data will be recorded for the satellite and
+all particles every 5 Myr's.
+
+In addition to this informaion the program will require the user to
+manually set the parameters for the potential fields of the two 
+galaxies. The following set up is for the M31 galaxy and a dwarf 
+galaxy.
+
+	// Major galaxy
+	double M_b = 9.2e10;            // Bulge mass [M_sun]. 
+    double r_b = 0.7;               // Bulge radius [kpc].
+    double M_d = 1.3e11;            // Disc mass [M_sun].
+    double A = 6.5;                 // Disc scale [kpc].
+    double B = 0.26;                // Disc scale [kpc].
+    double r_h = 12;                // Halo critical radius [kpc].
+    double V_h = 186;               // Halo rotational velocity [km/s].
+    double r_b_lum = 3;             // Luminous bulge radius [kpc].
+    double h_d_lum = 1;             // Luminous disc thickness [kpc].
+    double r_d_lum = 15;            // Luninous disc length [kpc].
+ 
+    // Satellite galaxy
+    double M_s = 1e9;               // Satellite mass [M_sun].
+    double r_s = 0.8;               // Satellite radius [kpc].
+ 
+With all these parameters set to preferred values the main.cpp file
+should be compiled. 
+
+
+The program can the be run by executing the run.exe file.
+
+The program will start by printing information about the set of
+encounters that are common in all simulations. It will also store 
+this information in a file info.txt.
+ 
+The program will create a directory and store the data accordinly:
+/RUN000
+	initial_conditions.txt
+	/data
+		particle_0.txt
+		particle_1.txt
+		...
+		satellite.txt
+
+Each data file (e.g. particle_0.txt) contains the following 
+information:
+
+t		x		y		z		vx			vy			vz
+[Myr]	[kpc]	[kpc]	[kpc]	[kpc/Myr]	[kpc/Myr]	[kpc/Myr]
+
+The data file for the satellite is strucutred in a similar way but 
+includes a additional flag which is set to 1 if the dwarf galaxy 
+collides with the visible parts of the major galaxy. The flag is 
+given in the last column of each row.
+
+When running the program with an adaptive timestep it will also 
+create a file timestep.txt which inclues information about the 
+timestep.
+
+The program comes with a set up where the program will simulate the 
+motion of a satellite galaxy on a circular orbit 200 kpc away from
+the M31 galaxy centre. The satellite has a population of five
+globular clusters on random orbits.
+ 
+#######################################################################
+
+Known bugs and issues:
+
+Jan 9, 2018: If using the adaptive timestep the program sometimes
+			 gets stuck during the simulation. The issue does not seem
+			 to be an infinitly small timestep, however I am 
+			 investigating the problem. The solution is to either force 
+			 the simulation to stop and rerun with the initial 
+			 initial conditions set to the latest known position and
+			 velocity of the encounter or to run without the adaptive 
+             timestep.
+		 
+Jan 11, 2018: If the simulation is run with an adaptive timestep it 
+			  will warm up the simulation and therefore move objects
+			  around without recording this. When attempting to solve 
+			  this by reseting the intial coordinates the timestep 
+	          starts behaiving in a unwanted way. For now the 
+			  program will not attempt to reset the initial conditions.
+
+#######################################################################
+
+How the program works:
+
+The program uses a stepwise numerical integration scheme to update the
+position and velocity of all components. The adaptive timestep method
+uses a Kash-Carp Runge-Kutta to integrate while the regular integrator
+is a basic fourth-order Runge-Kutta. To update the velocity the program
+uses the acceleration that the obejct obtains in the potential field. 
+The satellite is only accelerated by the major galaxy, while particles
+are accelerated by both the major and the satellite galaxy. In the 
+program the major galaxy is fixed and therefore each object will feel 
+the acceleration of the reference system, given by the force the major
+galaxy feels from the satellite. This contribution is minute for most 
+satellite galaxy masses but is considered regardless. 
+
+Each moving object (satellite and particles) updates its own position
+using a build in method in the class. This update method calls the 
+acceleration function from the relavent galaxies to calculate 
+the acceleration. See Nestled program strucutre for clarification.
+
+#######################################################################
+
+Nestled program structure:
+							main.cpp
+						   	   |
+		 ______________________|_________________________
+        |					   |                        |
+	    V                      V                        V  
+ Class/Galaxy.cpp      Class/Satellite.cpp		Class/Particle.cpp
+	    |______________________|________________________|
+		|		       |                |               |
+        V              V                V               V
+  acceleration()    update()      acceleration()     update()
+        Λ              |                Λ               |
+		|______________|                |_______________|
+		Λ												|
+        |_______________________________________________|
+ 
+#######################################################################
+	
+Documentation:
+
+##########
+main.cpp #
+##########
+
+main()
+  	 /* Main function of the program. This is the first function that
+      * the program will call when executed. This function will set 
+      * all parameters, initiate all variables and create all objects
+      * that is used in the simulation. The function will then simulate 
+      * the encounter by updating position and velocity the satellite 
+      * galaxy and its particle population. This function will also print
+      * usefull information during the run in the terminal and store 
+      * data in given output files. 
+      *
+      *****************************************************************/
+     // Last modified: Eric Andersson, 11 Jan 2018.
+ 
+##################
+Class/Galaxy.hpp #
+##################
+
+class Galaxy
+     /* Class for the major galaxy. The potential of this galaxy consist
+      * of a bulge, disc and halo potential which is fixed at origo of
+      * the simulated space.
+      *
+      * Class variables:
+      *      M_b
+      *          Bulge mass [M_sun]
+      *      r_b
+      *          Bulge radius [kpc]
+      *      M_d
+      *          Disc mass [M_sun]
+      *      A 
+      *          Disc radial scale [kpc]
+      *      B
+      *          Disc thickness scale [kpc]
+      *      r_c
+      *          Characteristic radius of halo [kpc]
+      *      V_h
+      *          Rotational velocity at r_c [kpc Myr⁻¹]
+      *      vr_disc
+      *          Visible radius of bulge.
+      *      vl_disc
+      *          Visible length of disc.
+      *      vt_disc
+      *          Visible thickness of disc.
+      *
+      ******************************************************************/
+     // Last modified: Eric Andersson, 11 Jan 2018.
+
+##################
+Class/Galaxy.cpp #
+##################
+
+Galaxy::Galaxy (double init_M_b, double init_r_b,
+                       double init_M_d, double init_A, double init_B,
+                       double init_r_c, double init_V_h,
+                       double init_vr_bulge, double init_vl_disc,
+                       double init_vt_disc) {
+     /* Constructor for Galaxy class. Initiates the major galaxy as a 
+      * Galaxy object.
+      *
+      *      Arguments:
+      *          init_M_b
+      *              Characteristic bulge mass.
+      *          init_r_b
+      *              Characteristic bulge radius.
+      *          init_M_d
+      *              Characteristic disc mass.
+      *          init_A
+      *              Characteristic disc radius.
+      *          init_B
+      *              Characteristic disc thickness.
+      *          init_r_c
+      *              Characteristic halo radius.
+      *          init_V_h
+      *              Rotational velocity in halo at r_c.
+      *          init_vr_disc
+      *              Visible radius of bulge.
+      *          init_vl_disc
+      *              Visible length of disc.
+      *          init_vt_disc
+      *              Visible thickness of disc.
+      *
+      *****************************************************************/
+	 // Last modified: Eric Andersson, 11 Jan 2018.
+
+void Galaxy::acceleration (Galaxy g,
+         double x, double y, double z, double *a ) {
+     /* Function that computes the acceleration of a particle in the 
+      * galactic potential.
+      *
+      *      Arguments:
+      *          g
+      *              Major galaxy object.
+      *          x,y,z
+      *              Coordinates of particle.
+      *          *a
+      *              Pointer to first element in a vector [3] to which 
+      *              the acceleration is set as (ax, ay, az).
+      *
+      *****************************************************************/
+     // Last modified: Eric Andersson, 11 Jan 2018.
+
+void Galaxy::bulge_acceleration(Galaxy g, double x, double y,
+         double z, double *a) {
+     /* Function for calculating the bulge component of the
+      * acceleration. The bulge potential is approximated with a
+      * Hernquist potential given by
+      *       
+      *   \Phi_{\rm b}(r) = - \frac{GM_b}{r_b + r}.
+      *
+      * See Hernquist (1990) for details.
+      *
+      *      Arguments:
+      *          g
+      *              Major galaxy object.
+      *          x,y,z
+      *              Coordinates of particle.
+      *          *a
+      *              Pointer to first element in a vector [3] to which 
+      *              the acceleration is set as (ax, ay, az).
+      *
+      *****************************************************************/
+     // Last modified: Eric Andersson, 11 Jan 2018.
+
+void Galaxy::disc_acceleration(Galaxy g, double x, double y, double z,
+         double *a) {
+     /* Function for calculating the disc component of the
+      * acceleration. The potential is approximated by a Miyamoto-Nagai
+      * potential given by 
+      *
+      *   \Phi_{\rm disc}(R,z) = 
+      *   - \frac{GM_d}{\sqrt{R^2 + (a + \sqrt{z^2 + b^2})^2}}.
+      *
+      * See Miamoyo & Nagai (1975) for details.
+      *
+      *      Arguments:
+      *          g
+      *              Major galaxy object.
+      *          x,y,z
+      *              Coordinates of particle.
+      *          *a
+      *              Pointer to first element in a vector [3] to which 
+      *              the acceleration is set as (ax, ay, az).
+      *
+      *****************************************************************/
+     // Last modified: Eric Andersson, 11 Jan 2018.
+ 
+void Galaxy::halo_acceleration(Galaxy g, double x, double y, double z,
+         double *a) {
+     /* Function for calculating the halo component of the
+      * acceleration. The halo potential is approximated by a 
+      * logarithmic potential, given by
+      *
+      *   \Phi_{\rm halo}(r) = \frac{1}{2}V_h^2\ln(r_h^2 + r^2).
+      *
+      * See, e.g., Font et al. (2006) for details. Outside the halo the
+      * potential is given by the potential of a point mass.
+      *
+      *      Arguments:
+      *          g
+      *              Major galaxy object.
+      *          x,y,z
+      *              Coordinates of particle.
+      *          *a
+      *              Pointer to first element in a vector [3] to which 
+      *              the acceleration is set as (ax, ay, az).
+      *
+      *****************************************************************/
+     // Last modified: Eric Andersson, 11 Jan 2018.
+ 
+double Galaxy::collision(Galaxy g, double x, double y, double z) {
+     /* Function that determines whether the satellite has is passing 
+      * through visible parts of the major galaxy or not.
+      *
+      *      Arguments:
+      *          g
+      *              Galaxy object.
+      *          x, y, z
+      *              Position of object that can collide with Galaxy.
+      *
+      ******************************************************************/
+     // Last modified: Eric Andersson, 11 Jan 2018.
+
+
+#####################
+Class/Satellite.hpp #
+#####################
+
+class Satellite {
+     /* Class for the satellite galaxy.
+      *
+      * Class Variables:
+      *      M_s
+      *          Mass of the satellite.
+      *      r_s
+      *          Characteristic radius of the satellite.
+      *      x, y, z
+      *          Position of the satellite galaxy.
+      *      vx, vy, vz
+      *          Velocity of the satellite galaxy.
+      *      t
+      *          Current time.
+      *****************************************************************/
+     // Last modified: Eric Andersson, 11 Jan 2018.
+
+
+#####################
+Class/Satellite.cpp #
+#####################
+
+Satellite::Satellite(double M_s_init, double r_s_init,
+                     double x0, double y0, double z0,
+                     double vx0, double vy0, double vz0) {
+     /* Constructor for Satellite class. Initiates the galaxy as a 
+      * Satellite object.
+      *
+      *      Arguments:
+      *          M_s_init
+      *              Characteristic dwarf galaxy mass.
+      *          r_s_init
+      *              Characteristic dwarf galaxy radius.
+      *          x0
+      *              Initial x position of dwarf galaxy.
+      *          y0
+      *              Initial y position of dwarf galaxy.
+      *          z0
+      *              Initial z position of dwarf galaxy.
+      *          vx0
+      *              Initial x velocity of dwarf galaxy.
+      *          vy0
+      *              Initial y velocity of dwarf galaxy.
+      *          vz0
+      *              Initial z velocity of dwarf galaxy.
+      *
+      *****************************************************************/
+     // Last modified: Eric Andersson, 11 Jan 2018.
+
+void Satellite::rk4(Galaxy g, Satellite s, double r [3],
+         double v [3], double dt) {
+     /* Function that integrates the dwarf galaxy trajectory by taking 
+      * a fourth-order Runge-Kutta step with stepsize dt.
+      *
+      *      Arguments:
+      *          g
+      *              Galaxy object for calling acceleration function.
+      *          r
+      *              Vector with the positional coordinates (x, y, z)
+      *          v
+      *              Vector with the velocity (vx, vy, vz)
+      *          dt
+      *              Step size of the integration in time.
+      *
+      *****************************************************************/
+     // Last modified: Eric Andersson, 11 Jan 2018.
+ 
+void Satellite::rkck(Galaxy g, Satellite s, double r [3],
+         double v [3], double &dt, double &time) {
+     /* Function that integrates the dwarf galaxy trajectory by taking 
+      * a Cash-Karp Runge-Kutta step which adapts the time step size 
+      * given a maximum allowed error in the integration.
+      *
+      *      Arguments:
+      *          g
+      *              Galaxy object for calling acceleration function.
+      *          r
+      *              Vector with the positional coordinates (x, y, z).
+      *          v
+      *              Vector with the velocity (vx, vy, vz).
+      *          dt
+      *              Pointer to timestep value location.
+      *          time
+      *              Pointer to time value location.
+      *
+      *****************************************************************/
+     // Last modified: Eric Andersson, 11 Jan 2018.
+
+void Satellite::update(Galaxy g, Satellite s, double &dt,
+                         double &time, bool adapt_timestep) {
+     /* Function that updates the satellite galaxy position.
+      *
+      *      Arguments:
+      *          g
+      *              Galaxy object for calling acceleration function.
+      *          s
+      *              Satellite object.
+      *          dt 
+      *              Step size in time.
+      *          time
+      *              Current time in simulation.
+      *          adapt_timestep
+      *              True/False for adapive time step integrator.
+      *
+      *****************************************************************/
+     // Last modified: Eric Andersson, 11 Jan 2018.
+
+void Satellite::acceleration(Satellite s,
+     double xp, double yp, double zp, double *a){
+     /* Function that calculates the acceleration of a particle in the
+      * satellite galaxy potential. The satellite potential is given by
+      * a Plummer model, given by 
+      *
+      *   \Phi_p = \frac{GM_{\rm p}}{\sqrt{r_{\rm p}^2 + r^2}}.
+      *
+      * See Plummer (1911) for details.
+      *
+      *      Arguments:
+      *          s
+      *              Satellite object.
+      *          xp 
+      *              Position of particle in x.
+      *          yp 
+      *              Position of particle in y.
+      *          zp 
+      *              Position of particle in z.
+      *          a
+      *              Pointer to location where acceleration value will
+      *              be updated.
+      *
+      *****************************************************************/
+     // Last modified: Eric Andersson, 11 Jan 2018.
+
+
+####################
+Class/Particle.hpp #
+####################
+
+class Particle {
+     /* Class for particls that that can be integrated in galactic 
+      * potentials. The class uses a fourth order Runge-Kutta to 
+      * integrate particle positions in the potentials.
+      *
+      * Instance Variables:
+      *      npar
+      *          Number of particles
+      *      t
+      *          Current time for every particle
+      *      x,y,z
+      *          Vector with positional coordinate
+      *      vx,vy,vz
+      *          Vector with time-derivative of position
+      *
+      *****************************************************************/
+     // Last modified: Eric Andersson, 11 Jan 2018.
+
+
+####################
+Class/Particle.cpp #
+####################
+
+Particle::Particle(std::vector<double> x0, std::vector<double> y0,
+         std::vector<double> z0, std::vector<double> vx0,
+         std::vector<double> vy0, std::vector<double> vz0) {
+     /* Constructor for the Particle object. Initiates a set of 
+      * particles. The parameter param for particle n is given by
+      * particle.param[n] where particle is the Particle object.
+      *
+      *      Arguments:
+      *          x0,y0,z0
+      *              Vector with initial Cartiesian coordinates (x,y,z)
+      *              for each particle.
+      *          vx0,vy0,vz0
+      *              Vector with initial velocities (vx, vy, vz).
+      *
+      *****************************************************************/
+     // Last modified: Eric Andersson, 11 Jan 2018.
+
+void Particle::rk4(Galaxy g, Satellite s, double r [3],
+         double v [3], int index, double dt) {
+     /* Function that integrates the dwarf galaxy trajectory by taking 
+      * a fourth-order Runge-Kutta step with stepsize dt.
+      *
+      *      Arguments:
+      *          g
+      *              Galaxy object for calling acceleration function.
+      *          s
+      *              Satellite object for calling acceleration function.
+      *          r
+      *              Vector with the positional coordinates (x, y, z).
+      *          v
+      *              Vector with the velocity (vx, vy, vz).
+      *          index
+      *              Index of integrated particle.
+      *          dt
+      *              Step size of the integration in time.
+      *
+      *****************************************************************/
+     // Last modified: Eric Andersson, 11 Jan 2018.
+
+void Particle::rkck(Galaxy g, Satellite s, double r [3], double v [3],
+         int index, double &dt, double &err, double eps) {
+     /* Function that integrates the dwarf galaxy trajectory by taking 
+      * a Cash-Karp Runge-Kutta step which adapts the time step size 
+      * given a maximum allowed error in the integration.
+      *
+      *      Arguments:
+      *          g
+      *              Galaxy object for calling acceleration function.
+      *          r
+      *              Vector with the positional coordinates (x, y, z).
+      *          v
+      *              Vector with the velocity (vx, vy, vz).
+      *          index
+      *              Index of integrated particle.
+      *          dt
+      *              Adress to timestep value.
+      *          err
+      *              Adress to maximum error value.
+      *          eps
+      *              Maximim tolerance on error
+      *****************************************************************/
+     // Last modified: Eric Andersson, 11 Jan 2018.
+
+void Particle::update(Galaxy g, Satellite s, double &dt,
+         bool adapt_timestep) {
+    /* Function that updates particle positions.
+      *
+      *      Arguments:
+      *          g
+      *              Galaxy object for calling acceleration function.
+      *          s
+      *              Satellite object.
+      *          dt 
+      *              Step size in time.
+      *          adapt_timestep
+      *              True/False for adapive time step integrator.
+      *
+      *****************************************************************/
+     // Last modified: Eric Andersson, 11 Jan 2018.
+
+#######################################################################
+
+

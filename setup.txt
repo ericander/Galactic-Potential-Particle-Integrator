@@ -1,0 +1,25 @@
+Parameters for setting up encounters using python script.
+N_set = 5           Number of encounters.
+N_GC = 100          Number of clusters.
+r_init = 500        Initial separation between M31 and dwarf [kpc].
+M_M31 = 1.4e12      Mass of M31 [Msun].
+M_GC = 2e5          Mass of cluster [Msun].
+M_s = 1e9           Mass of satellite [Msun].
+r_s = 0.8           Radius of satellite [kpc].
+r_GC = 0.4          Radius of cluster [kpc].
+r_fc = 200          Separation at "first contact" [kpc]. 
+sigma_dv = 0        Heating of cluster orbits [km/s].
+theta_min = 0       Minimum incoming angle [deg].
+theta_max = 90      Maximum incoming angle [deg].
+phi_min = 0         Minimum impact angle [deg].
+phi_max = 360       Maximum impact angle [deg].
+R_max = 100         Maximum pericentre distance [kpc].
+b_min = 0           Minimum impact paramter [kpc].
+M_b = 9.2e10        Mass of M31 bulge [Msun].
+r_b = 0.7           Radius of M31 bulge [kpc].
+M_d = 1.3e11        Mass of M31 disc [Msun].
+A = 6.5             Scale parameter for M31 disc [kpc].
+B = 0.26            Scale parameter for M31 disc [kpc].
+r_h = 12            Critical radius of M31 halo [kpc].
+V_h = 186           Rotational velocity of M31 halo [km/s].
+trajectory = bound  Characterization of trajectory.

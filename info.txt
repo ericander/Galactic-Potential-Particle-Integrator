@@ -1,0 +1,24 @@
+Simulation information.
+adaptive_timestep = false
+dt (Myr) = 0.100
+dt_rec (Myr) = 5
+time_tot (Myr) = 14000
+nruns = 1
+
+Potential parameters
+Major galaxy
+M_b = 92000000000
+r_b = 0.7
+M_d = 130000000000
+A = 6.500
+B = 0.260
+r_h = 12
+V_h = 186
+r_b_lum = 3
+h_d_lum = 1
+r_d_lum = 15
+
+Satellite galaxy
+M_s = 1000000000
+r_s = 1
+

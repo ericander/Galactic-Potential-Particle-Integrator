@@ -197,9 +197,9 @@ void Galaxy::halo_acceleration(Galaxy g, double x, double y, double z,
     // Constants
     const double PI = 3.14159265359;             // Value of pi
     const double G = 4.558e-13 * pow(PI, 2);     // kpc³ M_sun⁻¹ Myr⁻²
-    const double M_M31 = 1.4e12;                 // M_sun
+    const double M_M31 = 1.24e12;                // M_sun
     const double K = 0.001022;                   // Conversion factor
-    double r_cut = 218.9809261;                  // kpc
+    double r_cut = 155.08;                       // kpc
     
     if ( sqrt(pow(x, 2) + pow(y, 2) + pow(z, 2)) < r_cut) {
         // Acceleration if particle lie within the halo.

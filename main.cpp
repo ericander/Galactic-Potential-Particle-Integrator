@@ -22,7 +22,7 @@ using namespace std;
 #include "Class/Particle.hpp"
 #include "Class/Satellite.hpp"
 
-int main () {
+int main (int argc, char* argv[]) {
     /* Main function of the program. This is the first function that
      * the program will call when executed. This function will set 
      * all parameters, initiate all variables and create all objects
@@ -41,6 +41,8 @@ int main () {
     double dt_rec = 5;              // Data recorded every dt_rec Myr.
     double time_tot = 14000;        // Total simulated time in Myr.
     double nruns = 1;               // Number of runs.
+    int startRUN;
+    int finalRUN;
 
     // Set parameters for the potential fields.
     // Major galaxy
@@ -66,10 +68,22 @@ int main () {
     cout << "#############################################" << endl;
     cout << "Simulations will run for " << time_tot << " Myr." << endl;
 
-    // Run all encounters.
+    // Set up what encounters to run.
+    if (argc == 3){
+        startRUN = atoi(argv[1]);
+        finalRUN = atoi(argv[2]);
+        cout << "Will run encounters RUN" << startRUN << " to RUN" << 
+            finalRUN-1 << endl;
+    } else{
+        cout << "Encounters not specified. Will run all " << nruns << 
+            " encounter, starting with RUN000." << endl;
+        startRUN = 0;
+        finalRUN = nruns;
+    }
+
     double nSteps = time_tot / dt;
     
-    for (int run = 0; run < nruns; run++) {
+    for (int run = startRUN; run < finalRUN; run++) {
         // Set up directories.
         stringstream directory;
         directory.str("");
